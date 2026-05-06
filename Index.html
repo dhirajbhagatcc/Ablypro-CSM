@@ -1633,10 +1633,10 @@ function createTicket() {
 // ═══════════════════════════════════════════════════════════════════════════
 // AI AGENT — ARIA
 // ═══════════════════════════════════════════════════════════════════════════
-var OPENAI_API_KEY = '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';
-var OPENAI_BASE_URL = 'https://api.manus.im/api/llm-proxy/v1/chat/completions';
-  // Note: For standalone use outside Manus, replace OPENAI_API_KEY with your own OpenAI key
-  // and OPENAI_BASE_URL with 'https://api.openai.com/v1/chat/completions'
+var CLAUD_API_KEY = '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';
+var CLAUDE_BASE_URL = 'https://api.anthropic.com/v1/messages';
+  // Note: For standalone use outside Manus, replace CLAUD_API_KEY with your own CLAUD key
+  // and CLAUD_BASE_URL with 'https://api.CLAUD.com/v1/chat/completions'
 var agentHistory = [];
 var agentTyping = false;
 
@@ -1772,21 +1772,21 @@ async function sendAgentMsg() {
   var typingDiv = addAgentMsg('bot', '🤖 Aria is analysing your request…', true);
 
   try {
-    var resp = await fetch(OPENAI_BASE_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + OPENAI_API_KEY,
-      },
-      body: JSON.stringify({
-        model: 'gpt-4.1-mini',
-        max_tokens: 1800,
-        messages: [
-          {role:'system', content:buildSystemPrompt()},
-          ...agentHistory.slice(-12)
-        ]
-      })
-    });
+    var resp = await fetch(CLAUDE_BASE_URL, {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-api-key': CLAUDE_API_KEY,
+    'anthropic-version': '2023-06-01'
+  },
+  body: JSON.stringify({
+    model: "claude-3-5-sonnet-20241022",
+    max_tokens: 1500,
+    messages: [
+      { role: "user", content: text }
+    ]
+  })
+});
 
     if (!resp.ok) {
       var err = await resp.json().catch(function(){return {};});
@@ -1794,8 +1794,9 @@ async function sendAgentMsg() {
     }
 
     var data = await resp.json();
-    var reply = (data.choices&&data.choices[0]&&data.choices[0].message&&data.choices[0].message.content) || 'No response received.';
-
+var reply = (data.content && data.content[0] && data.content[0].text) 
+  ? data.content[0].text 
+  : 'No response received.';
     if (typingDiv&&typingDiv.parentNode) typingDiv.parentNode.removeChild(typingDiv);
     addAgentMsg('bot', reply);
     agentHistory.push({role:'assistant', content:reply});
