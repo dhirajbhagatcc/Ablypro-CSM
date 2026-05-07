@@ -527,7 +527,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="agent-name">Aria — Digital CSM Agent</div>
       <div class="agent-status-text" id="agent-status-text">Ready · Powered by Claude</div>
     </div>
-    <button class="agent-close" onclick="closeAgent()">✕</button>
+    <div style="margin-left:auto; display:flex; gap:10px; align-items:center">
+      <a href="agent.html" target="_blank" style="background:rgba(255,255,255,0.1); color:white; text-decoration:none; padding:4px 10px; border-radius:4px; font-size:10px; font-weight:600; border:1px solid rgba(255,255,255,0.2)">↗ Full Page Agent</a>
+      <button class="agent-close" onclick="closeAgent()">✕</button>
+    </div>
   </div>
   <div class="agent-ctx-bar">
     Context loaded:

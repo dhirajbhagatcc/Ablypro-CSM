@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aria — Digital CSM Agent | AblyPro</title>
+  <style>
+    :root {
+      --primary: #1B3A6B;
+      --secondary: #5C2D91;
+      --bg: #F0F2F5;
+      --text: #1a1a1a;
+      --bot-bubble: #ffffff;
+      --user-bubble: #1B3A6B;
+      --user-text: #ffffff;
+      --border: #E0E0E0;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+    
+    header { background: var(--primary); color: white; padding: 15px 20px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 10; }
+    .logo-area { display: flex; align-items: center; gap: 12px; }
+    .logo { width: 36px; height: 36px; background: linear-gradient(135deg, #2E75B6, #5C2D91); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 800; }
+    .title h1 { font-size: 18px; font-weight: 700; }
+    .title p { font-size: 12px; opacity: 0.8; }
+    .back-btn { color: white; text-decoration: none; font-size: 14px; display: flex; align-items: center; gap: 5px; opacity: 0.9; transition: opacity 0.2s; }
+    .back-btn:hover { opacity: 1; }
+
+    .status-bar { background: #E2EFDA; color: #217346; padding: 8px 20px; font-size: 12px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #A8D08D; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #4CAF50; animation: pulse 2s infinite; }
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+    #chat-container { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; max-width: 900px; margin: 0 auto; width: 100%; }
+    .message { display: flex; flex-direction: column; max-width: 85%; }
+    .message.bot { align-self: flex-start; }
+    .message.user { align-self: flex-end; }
+    .bubble { padding: 12px 16px; border-radius: 12px; font-size: 14px; line-height: 1.5; position: relative; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+    .bot .bubble { background: var(--bot-bubble); color: var(--text); border: 1px solid var(--border); border-top-left-radius: 2px; }
+    .user .bubble { background: var(--user-bubble); color: var(--user-text); border-top-right-radius: 2px; }
+    .meta { font-size: 10px; color: #888; margin-top: 4px; }
+    .user .meta { text-align: right; }
+
+    .typing { font-style: italic; color: #888; font-size: 12px; margin-bottom: 10px; display: none; }
+
+    .input-area { background: white; border-top: 1px solid var(--border); padding: 15px 20px; }
+    .input-wrap { max-width: 900px; margin: 0 auto; display: flex; gap: 10px; align-items: flex-end; }
+    textarea { flex: 1; border: 1px solid var(--border); border-radius: 20px; padding: 10px 18px; font-family: inherit; font-size: 14px; resize: none; max-height: 150px; outline: none; transition: border-color 0.2s; }
+    textarea:focus { border-color: var(--primary); }
+    button.send-btn { background: var(--primary); color: white; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; transition: transform 0.2s; }
+    button.send-btn:hover { transform: scale(1.05); background: var(--secondary); }
+
+    .setup-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; display: flex; align-items: center; justify-content: center; color: white; text-align: center; }
+    .setup-card { background: #1B2B3E; padding: 30px; border-radius: 15px; max-width: 400px; width: 90%; }
+    .setup-card h2 { margin-bottom: 15px; }
+    .setup-card input { width: 100%; padding: 10px; margin: 15px 0; border-radius: 5px; border: none; }
+    .setup-card button { background: var(--secondary); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
+
+    /* Markdown styling */
+    .bubble p { margin-bottom: 10px; }
+    .bubble ul, .bubble ol { margin-left: 20px; margin-bottom: 10px; }
+    .bubble li { margin-bottom: 5px; }
+  </style>
+</head>
+<body>
+
+  <div id="setup-screen" class="setup-overlay" style="display:none">
+    <div class="setup-card">
+      <h2>Connect Aria</h2>
+      <p>Paste your Google Apps Script Web App URL to begin.</p>
+      <input type="text" id="proxy-input" placeholder="https://script.google.com/macros/s/...">
+      <button onclick="saveProxy()">Connect Agent</button>
+    </div>
+  </div>
+
+  <header>
+    <div class="logo-area">
+      <div class="logo">A</div>
+      <div class="title">
+        <h1>Aria — Digital CSM</h1>
+        <p>Powered by Claude 3.5 Sonnet</p>
+      </div>
+    </div>
+    <a href="index.html" class="back-btn">← Back to Dashboard</a>
+  </header>
+
+  <div class="status-bar">
+    <div class="status-dot"></div>
+    <span id="status-text">Connected to AblyPro Portfolio Data</span>
+    <span id="client-count" style="margin-left:auto; font-weight:600">Loading clients...</span>
+  </div>
+
+  <div id="chat-container">
+    <div class="message bot">
+      <div class="bubble">
+        👋 Hello Dhiraj! I'm Aria, your dedicated Digital CSM Agent. I've loaded your portfolio data from Google Sheets. How can I help you today?
+      </div>
+      <div class="meta">Aria · Just now</div>
+    </div>
+  </div>
+
+  <div id="typing-indicator" class="typing" style="padding: 0 20px; max-width: 900px; margin: 0 auto;">Aria is thinking...</div>
+
+  <div class="input-area">
+    <div class="input-wrap">
+      <textarea id="user-input" rows="1" placeholder="Ask about your accounts, tickets, or renewals..." onkeydown="handleKey(event)"></textarea>
+      <button class="send-btn" onclick="sendMessage()">➤</button>
+    </div>
+  </div>
+
+  <script>
+    const SHEET_ID = '1WsgBZ5wo_G8FjbQQRd44z0MG60WFSxlDtL2Jju0KJlk';
+    const GIDS = { clients: 2034883451, tickets: 986671240, renewals: 879444451 };
+    let CLIENTS = [], TICKETS = [], RENEWALS = [];
+    let PROXY_URL = localStorage.getItem('ablyproCsmProxyUrl') || '';
+    let chatHistory = [];
+
+    if (!PROXY_URL) document.getElementById('setup-screen').style.display = 'flex';
+
+    function saveProxy() {
+      const val = document.getElementById('proxy-input').value.trim();
+      if (val.startsWith('https://script.google.com')) {
+        PROXY_URL = val;
+        localStorage.setItem('ablyproCsmProxyUrl', val);
+        document.getElementById('setup-screen').style.display = 'none';
+      } else {
+        alert('Please enter a valid Google Apps Script URL');
+      }
+    }
+
+    async function loadData() {
+      try {
+        const [cData, tData, rData] = await Promise.all([
+          fetchGviz(GIDS.clients),
+          fetchGviz(GIDS.tickets),
+          fetchGviz(GIDS.renewals)
+        ]);
+        CLIENTS = cData; TICKETS = tData; RENEWALS = rData;
+        document.getElementById('client-count').textContent = `${CLIENTS.length} Enterprise Clients Loaded`;
+      } catch (e) {
+        console.error('Data load error', e);
+        document.getElementById('status-text').textContent = 'Error loading sheet data';
+      }
+    }
+
+    async function fetchGviz(gid) {
+      const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${gid}`;
+      const resp = await fetch(url);
+      const text = await resp.text();
+      const json = JSON.parse(text.substring(47, text.length - 2));
+      const rows = json.table.rows;
+      return rows.map(r => r.c.map(cell => cell ? (cell.f || cell.v) : ''));
+    }
+
+    function handleKey(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+      e.target.style.height = 'auto';
+      e.target.style.height = Math.min(e.target.scrollHeight, 150) + 'px';
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById('user-input');
+      const text = input.value.trim();
+      if (!text || !PROXY_URL) return;
+
+      input.value = '';
+      input.style.height = 'auto';
+      addMessage('user', text);
+      
+      document.getElementById('typing-indicator').style.display = 'block';
+      const chatBox = document.getElementById('chat-container');
+      chatBox.scrollTop = chatBox.scrollHeight;
+
+      try {
+        const response = await fetch(PROXY_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({
+            system: buildSystemPrompt(),
+            messages: [...chatHistory, { role: 'user', content: text }].slice(-10)
+          })
+        });
+
+        const data = await response.json();
+        document.getElementById('typing-indicator').style.display = 'none';
+
+        if (data.error) {
+          addMessage('bot', `Error: ${data.error}. ${data.detail || ''}`);
+        } else {
+          const reply = data.content[0].text;
+          addMessage('bot', reply);
+          chatHistory.push({ role: 'user', content: text });
+          chatHistory.push({ role: 'assistant', content: reply });
+        }
+      } catch (e) {
+        document.getElementById('typing-indicator').style.display = 'none';
+        addMessage('bot', `Connection Error: ${e.message}. Please check your Proxy URL and API key.`);
+      }
+    }
+
+    function addMessage(role, text) {
+      const container = document.getElementById('chat-container');
+      const div = document.createElement('div');
+      div.className = `message ${role}`;
+      const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      
+      // Simple markdown-to-html (bullets and line breaks)
+      let html = text.replace(/\n/g, '<br>')
+                     .replace(/^\* (.*)/gm, '<li>$1</li>')
+                     .replace(/(<li>.*<\/li>)/g, '<ul>$1</ul>')
+                     .replace(/<\/ul><ul>/g, '');
+
+      div.innerHTML = `<div class="bubble">${html}</div><div class="meta">${role === 'user' ? 'You' : 'Aria'} · ${now}</div>`;
+      container.appendChild(div);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function buildSystemPrompt() {
+      const summary = `PORTFOLIO: ${CLIENTS.length} clients. \nCLIENT DATA: ${JSON.stringify(CLIENTS.slice(0,10))}...`;
+      return `You are Aria, the Digital CSM Agent for AblyPro. The CSM is Dhiraj Bhagat. \n\n${summary}\n\nBe concise, professional, and reference the specific client data provided.`;
+    }
+
+    loadData();
+  </script>
+</body>
+</html>
