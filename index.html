@@ -833,7 +833,8 @@ async function writeTicketToSheet() {
   var status=document.getElementById('sheet-write-status');
   btn.disabled=true; btn.textContent='Syncing...';
   try {
-    var response=await fetch(GAS_PROXY_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'writeTicket',ticket:lastCreatedTicket})});
+    // Using 'text/plain' to avoid pre-flight OPTIONS request
+    var response=await fetch(GAS_PROXY_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'writeTicket',ticket:lastCreatedTicket})});
     var data=await response.json();
     if(data.error) throw new Error(data.error);
     status.textContent='Ticket synced to Google Sheets at '+new Date().toLocaleTimeString();
@@ -1297,9 +1298,10 @@ async function sendAgentMsg() {
   document.getElementById('agent-status-text').textContent='Aria is thinking...';
   var typingDiv=addAgentMsg('bot','Aria is analysing your portfolio data...',true);
   try {
+    // Using 'text/plain' to avoid pre-flight OPTIONS request which GAS doesn't support
     var resp=await fetch(GAS_PROXY_URL,{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:{'Content-Type':'text/plain'},
       body:JSON.stringify({system:buildSystemPrompt(),messages:agentHistory.slice(-10)})
     });
     if(!resp.ok) throw new Error('Proxy returned '+resp.status);
